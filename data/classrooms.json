@@ -1,0 +1,33 @@
+{
+  "exam": "End Semester Examination",
+  "examDate": "2026-04-18",
+  "institution": "SmartSeat University",
+  "rooms": [
+    {
+      "name": "A-101", "rows": 5, "cols": 8,
+      "blocked": ["A-101-R3-C4", "A-101-R3-C5"],
+      "note": "Main block, ground floor"
+    },
+    {
+      "name": "A-102", "rows": 5, "cols": 7,
+      "blocked": ["A-102-R2-C2", "A-102-R5-C7"],
+      "note": "Main block, ground floor"
+    },
+    {
+      "name": "B-204", "rows": 4, "cols": 8,
+      "blocked": ["B-204-R4-C6"],
+      "note": "Science block, second floor"
+    },
+    {
+      "name": "B-205", "rows": 4, "cols": 7,
+      "blocked": ["B-205-R1-C1"],
+      "note": "Science block, second floor"
+    },
+    {
+      "name": "C-301", "rows": 5, "cols": 7,
+      "blocked": ["C-301-R3-C3"],
+      "note": "Library block, third floor"
+    }
+  ],
+  "totals": { "rooms": 5, "seats": 170, "blocked": 7, "usable": 163 }
+}

@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORD HUNT — Word Guessing Adventure</title>
+<meta name="description" content="WORD HUNT: a cartoon word guessing adventure with clues, hints and facts. C++ game engine (WebAssembly) with an HTML/CSS interface, accounts and a shared scoreboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   WORD HUNT — adventure-world design (the approved, unchanged look)
+   One cartoon game world is used on every screen; content sits in glass cards.
+   The small "ADDED" block at the end only styles the new elements with the
+   very same variables, cards and buttons.
+   ========================================================================== */
+:root{
+  --sky-1:#7fd8f2; --sun:#ffd166;
+  --ink:#22314f; --ink-soft:#51628a;
+  --glass:rgba(255,255,255,.84); --glass-2:rgba(255,255,255,.94);
+  --edge:rgba(34,49,79,.16);
+  --brand:#ff8a3d; --brand-dark:#e2661f;
+  --teal:#2fb8a6; --teal-dark:#1f8d80;
+  --gold:#ffc93c; --gold-dark:#d99e00;
+  --danger:#ff5c6c; --danger-dark:#d63a4c;
+  --ok:#4fbf6a;
+  --shadow:0 10px 0 rgba(34,49,79,.08), 0 22px 40px -14px rgba(20,35,70,.45);
+  --shadow-sm:0 5px 0 rgba(34,49,79,.07), 0 12px 22px -12px rgba(20,35,70,.35);
+  --focus:#1f8d80;
+  --r-lg:26px; --r-md:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden}
+body{font-family:'Nunito',system-ui,'Segoe UI',sans-serif;color:var(--ink);background:#8fdcf5;
+  -webkit-tap-highlight-color:transparent}
+h1,h2,h3,h4{font-family:'Baloo 2','Nunito',sans-serif;line-height:1.12;margin:0}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+:focus-visible{outline:4px solid var(--focus);outline-offset:3px;border-radius:10px}
+
+/* ======================= ONE GAME WORLD BACKGROUND ====================== */
+.world{position:fixed;inset:0;z-index:0;overflow:hidden;filter:blur(3px);
+  background:linear-gradient(180deg,#8fdcf5 0%,#bdeeff 45%,#e8f9ff 100%)}
+.sun{position:absolute;top:4%;right:7%;width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,#fff3c4 30%,var(--sun) 60%,#ffb703 100%);
+  box-shadow:0 0 80px 26px rgba(255,209,102,.5);animation:pulseSun 7s ease-in-out infinite}
+@keyframes pulseSun{50%{transform:scale(1.05)}}
+.cloud{position:absolute;background:#fff;border-radius:50%;opacity:.95}
+.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud.c1{width:160px;height:54px;top:11%;left:-180px;animation:drift 46s linear infinite}
+.cloud.c1::before{width:74px;height:74px;top:-30px;left:28px}
+.cloud.c1::after{width:54px;height:54px;top:-19px;left:88px}
+.cloud.c2{width:120px;height:42px;top:32%;left:-150px;animation:drift 62s linear infinite 7s}
+.cloud.c2::before{width:58px;height:58px;top:-24px;left:22px}
+.cloud.c2::after{width:42px;height:42px;top:-15px;left:64px}
+.cloud.c3{width:86px;height:32px;top:5%;left:-110px;animation:drift 76s linear infinite 20s}
+.cloud.c3::before{width:42px;height:42px;top:-17px;left:17px}
+.cloud.c3::after{width:32px;height:32px;top:-11px;left:47px}
+@keyframes drift{to{transform:translateX(125vw)}}
+.hill{position:absolute;bottom:-8%;border-radius:50% 50% 0 0/100% 100% 0 0}
+.hill.h1{left:-12%;width:72%;height:36%;background:#8ed26a}
+.hill.h2{right:-16%;width:82%;height:42%;background:#6cbf52}
+.hill.h3{left:22%;width:58%;height:27%;background:#a5dd7f}
+.tree{position:absolute;bottom:11%;font-size:54px;transform-origin:bottom center;animation:sway 6s ease-in-out infinite}
+.tree.t1{left:4%;bottom:15%}
+.tree.t2{right:5%;bottom:13%;animation-delay:-2.2s;font-size:46px}
+.tree.t3{left:45%;bottom:27%;animation-delay:-3.6s;font-size:34px;opacity:.9}
+@keyframes sway{50%{transform:rotate(4deg)}}
+.bird{position:absolute;font-size:20px;opacity:.8;animation:fly 30s linear infinite}
+.bird.b1{top:20%;left:-60px}
+.bird.b2{top:36%;left:-60px;animation-delay:-12s;font-size:16px}
+@keyframes fly{to{transform:translateX(115vw) translateY(-45px)}}
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(12,30,60,.30),rgba(12,30,60,.10) 45%,rgba(12,30,60,.34))}
+
+/* ================================ SHELL ================================ */
+#topnav{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;
+  gap:10px;padding:10px clamp(12px,3vw,26px);
+  background:rgba(255,255,255,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:2px solid var(--edge);box-shadow:0 10px 26px -18px rgba(20,35,70,.6)}
+#topnav .brand{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.15rem;color:#fff;
+  text-shadow:0 2px 0 #1f6a94,0 4px 10px rgba(0,0,0,.45);margin-right:auto}
+.navbtn{display:inline-flex;align-items:center;gap:.4rem;font-weight:900;font-size:.86rem;
+  padding:.5rem .85rem;border-radius:999px;background:rgba(255,255,255,.75);color:var(--ink);
+  border:2px solid var(--edge);transition:transform .15s,background .2s;box-shadow:var(--shadow-sm)}
+.navbtn:hover{transform:translateY(-2px);background:#fff}
+.navbtn.user{background:linear-gradient(180deg,#ffe9a8,#ffd166);border-color:var(--gold-dark)}
+.navbtn.out{background:linear-gradient(180deg,#ff8090,var(--danger));color:#fff;border-color:var(--danger-dark)}
+main{position:relative;z-index:2}
+body.nav-on{padding-top:64px}
+@media(max-width:600px){.navbtn span.lbl{display:none}.navbtn{padding:.5rem .7rem}}
+
+/* =============================== SCREENS =============================== */
+.screen{min-height:100vh;min-height:100dvh;display:none;align-items:center;justify-content:center;
+  padding:26px clamp(12px,3vw,34px) 46px}
+.screen.active{display:flex;animation:screenIn .42s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes screenIn{from{opacity:0;transform:translateY(26px) scale(.985)}to{opacity:1;transform:none}}
+.wrap{width:100%;max-width:1080px;margin:auto}
+.wrap-sm{width:100%;max-width:620px;margin:auto}
+.wrap-md{width:100%;max-width:820px;margin:auto}
+
+/* ================================ CARDS ================================ */
+.card{background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:3px solid rgba(255,255,255,.7);border-radius:var(--r-lg);box-shadow:var(--shadow);
+  padding:clamp(18px,3vw,32px)}
+.title-xl{text-align:center;font-size:clamp(1.5rem,4.6vw,2.3rem)}
+.subtitle{text-align:center;color:var(--ink-soft);font-weight:800;margin:.35rem 0 1.3rem;font-size:.95rem}
+.hintline{text-align:center;color:var(--ink-soft);font-weight:700;font-size:.8rem}
+
+/* ================================ LOGO ================================= */
+.logo{font-family:'Baloo 2',sans-serif;font-weight:800;text-align:center;color:#fff;
+  font-size:clamp(3rem,13vw,7rem);letter-spacing:.01em;
+  text-shadow:0 3px 0 #2a7ba8,0 6px 0 #1f6a94,0 9px 0 #17597f,0 16px 26px rgba(10,30,60,.5);
+  animation:logoFloat 4.6s ease-in-out infinite}
+.logo span{color:var(--gold);text-shadow:0 3px 0 #d99000,0 6px 0 #b97800,0 9px 0 #966000,0 16px 26px rgba(10,30,60,.5)}
+@keyframes logoFloat{50%{transform:translateY(-12px) rotate(-1deg)}}
+.tagline{font-family:'Baloo 2',sans-serif;font-weight:800;color:#eaf7ff;text-align:center;
+  letter-spacing:.3em;text-transform:uppercase;font-size:clamp(.68rem,2.6vw,1.1rem);
+  margin-top:6px;text-shadow:0 2px 10px rgba(0,0,0,.55)}
+.home-desc{color:#eaf7ff;font-weight:800;margin:16px auto 22px;max-width:560px;text-align:center;
+  font-size:clamp(.95rem,3.3vw,1.18rem);text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.home-foot{color:#eaf7ff;font-weight:800;font-size:.9rem;text-align:center;margin-top:14px;
+  text-shadow:0 2px 8px rgba(0,0,0,.5)}
+
+/* =============================== BUTTONS =============================== */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  font-family:'Baloo 2',sans-serif;font-weight:800;border-radius:var(--r-md);
+  padding:.8rem 1.5rem;font-size:1rem;color:#fff;user-select:none;
+  box-shadow:var(--shadow-sm);transition:transform .13s ease,box-shadow .13s ease,filter .2s ease}
+.btn:hover{transform:translateY(-3px);filter:brightness(1.06)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(34,49,79,.1)}
+.btn-primary{background:linear-gradient(180deg,#ffb03d,var(--brand));border-bottom:6px solid var(--brand-dark)}
+.btn-teal{background:linear-gradient(180deg,#4fd6c2,var(--teal));border-bottom:6px solid var(--teal-dark)}
+.btn-danger{background:linear-gradient(180deg,#ff8090,var(--danger));border-bottom:6px solid var(--danger-dark)}
+.btn-gold{background:linear-gradient(180deg,#ffe082,var(--gold));color:#5c4400;border-bottom:6px solid var(--gold-dark)}
+.btn-plain{background:rgba(255,255,255,.9);color:var(--ink);border:2px solid var(--edge)}
+.btn-plain:hover{background:#fff}
+.btn-ghost{background:rgba(255,255,255,.16);color:#fff;border:2px solid rgba(255,255,255,.55);
+  box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
+.btn-play{font-size:clamp(1.5rem,6vw,2.4rem);padding:1rem 3.6rem;border-radius:60px;
+  border-bottom:10px solid var(--brand-dark);
+  box-shadow:0 12px 0 rgba(226,102,31,.35),0 26px 40px -12px rgba(0,0,0,.5)}
+.btn-play::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.6) 46%,transparent 60%);
+  transform:translateX(-120%);animation:shine 3.6s ease-in-out infinite}
+@keyframes shine{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none!important;filter:grayscale(.4)}
+.btn-lg{font-size:1.15rem;padding:1rem 2rem}
+.btn-sm{font-size:.85rem;padding:.55rem .95rem}
+
+/* ============================ CATEGORY CARDS =========================== */
+.grid-cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.cat{position:relative;text-align:left;background:var(--glass-2);border:3px solid var(--edge);
+  border-radius:20px;padding:16px;cursor:pointer;box-shadow:var(--shadow-sm);
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.4),box-shadow .18s,border-color .18s}
+.cat:hover{transform:translateY(-6px) rotate(-.6deg);border-color:#bcd8e6}
+.cat .ico{font-size:2.1rem;filter:drop-shadow(0 4px 4px rgba(0,0,0,.18))}
+.cat .nm{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.08rem;margin:.2rem 0 .25rem}
+.cat .ds{font-size:.82rem;color:var(--ink-soft);font-weight:700;line-height:1.35}
+.cat .meta{display:flex;gap:8px;align-items:center;margin-top:.55rem;font-size:.72rem;font-weight:900;color:var(--ink-soft)}
+.cat .meta .badge{background:#eef6fb;border-radius:999px;padding:.15rem .5rem}
+.cat.sel{border-color:var(--teal);background:linear-gradient(180deg,#f4fffc,#e6fff9);
+  box-shadow:0 0 0 4px rgba(47,184,166,.3),var(--shadow-sm);transform:translateY(-4px)}
+.cat.sel::after{content:"✔ selected";position:absolute;top:-12px;right:12px;background:var(--teal);
+  color:#fff;border-radius:999px;padding:.2rem .6rem;font-size:.68rem;font-weight:900}
+.cat.done .meta .badge.left{background:#e9fbef;color:#186a32}
+.cat.locked{opacity:.6}
+
+/* ============================ DIFFICULTY =============================== */
+.grid-diff{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.opt{position:relative;background:var(--glass-2);border:3px solid var(--edge);border-radius:20px;
+  padding:18px 12px;text-align:center;cursor:pointer;box-shadow:var(--shadow-sm);
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.4),box-shadow .18s,border-color .18s}
+.opt:hover{transform:translateY(-6px)}
+.opt .ico{font-size:2.2rem}
+.opt .nm{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.15rem;margin:.25rem 0}
+.opt .lv{font-weight:900;color:var(--ink-soft)}
+.opt .sb{font-size:.76rem;color:var(--ink-soft);font-weight:700;margin-top:.3rem}
+.opt.sel{border-color:var(--teal);background:linear-gradient(180deg,#f4fffc,#e6fff9);
+  box-shadow:0 0 0 4px rgba(47,184,166,.3),var(--shadow-sm);transform:translateY(-4px)}
+.opt.easy.sel{border-color:var(--ok);box-shadow:0 0 0 4px rgba(79,191,106,.3),var(--shadow-sm)}
+.opt.hard.sel{border-color:var(--danger);box-shadow:0 0 0 4px rgba(255,92,108,.3),var(--shadow-sm)}
+
+/* ============================== MINI SCORE ============================= */
+.mini{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-bottom:16px}
+.pill{display:inline-flex;align-items:center;gap:.4rem;background:var(--glass-2);
+  border:2px solid var(--edge);border-radius:999px;padding:.45rem .95rem;font-weight:900;
+  font-size:.88rem;box-shadow:var(--shadow-sm)}
+.pill b{font-family:'Baloo 2',sans-serif;font-size:1.05rem}
+.usercard{display:flex;align-items:center;gap:14px;justify-content:center;flex-wrap:wrap;
+  background:var(--glass);border:3px solid rgba(255,255,255,.7);border-radius:22px;
+  padding:12px 18px;box-shadow:var(--shadow);margin:0 auto 22px;max-width:560px;backdrop-filter:blur(14px)}
+.avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;background:linear-gradient(160deg,#ffe08a,var(--gold));box-shadow:var(--shadow-sm)}
+.usercard .uc-name{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:1.1rem}
+.usercard .uc-meta{font-weight:800;color:var(--ink-soft);font-size:.84rem}
+
+/* =============================== FORMS ================================= */
+.field{margin-bottom:14px;text-align:left}
+.field label{display:block;font-weight:900;font-size:.8rem;letter-spacing:.06em;margin-bottom:.35rem;color:var(--ink-soft)}
+.field input{width:100%;padding:.8rem 1rem;border-radius:14px;font-size:1rem;font-weight:700;
+  border:3px solid var(--edge);background:rgba(255,255,255,.92);color:var(--ink);transition:.2s}
+.field input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px rgba(47,184,166,.2)}
+.form-note{font-size:.78rem;color:var(--ink-soft);font-weight:700;text-align:center;margin-top:10px}
+.tabs{display:flex;gap:10px;justify-content:center;margin-bottom:18px}
+.tabbtn{font-family:'Baloo 2',sans-serif;font-weight:800;padding:.6rem 1.4rem;border-radius:999px;
+  background:rgba(255,255,255,.6);border:2px solid var(--edge);box-shadow:var(--shadow-sm);font-size:.95rem}
+.tabbtn.on{background:linear-gradient(180deg,#4fd6c2,var(--teal));color:#fff;border-color:var(--teal-dark)}
+
+/* =============================== GAME ================================== */
+.game-grid{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:18px;align-items:start}
+.stage-wrap{position:relative;border-radius:22px;overflow:hidden;border:3px solid rgba(255,255,255,.7);
+  background:linear-gradient(180deg,rgba(223,243,251,.9),rgba(234,249,230,.9) 62%,rgba(185,229,155,.92));
+  box-shadow:var(--shadow-sm)}
+.stage-wrap .tag{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.95);
+  border-radius:999px;padding:.3rem .8rem;font-weight:900;font-size:.78rem;box-shadow:var(--shadow-sm)}
+.part{opacity:0;transform:translateY(-8px) scale(.85);transform-origin:center;
+  transition:opacity .35s ease,transform .45s cubic-bezier(.2,1.6,.4,1)}
+.part.on{opacity:1;transform:none}
+#hero{animation:bob 3.4s ease-in-out infinite;transform-origin:150px 60px}
+@keyframes bob{50%{transform:translateY(6px)}}
+.sweat{animation:drop 1.6s ease-in-out infinite}
+@keyframes drop{50%{transform:translateY(6px);opacity:.4}}
+.clue{background:linear-gradient(180deg,#fffdf2,#fff3cd);border:3px solid var(--gold-dark);
+  border-radius:18px;padding:14px 16px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+.clue .lbl{font-size:.7rem;letter-spacing:.16em;font-weight:900;color:#7a5800}
+.clue .txt{font-weight:700;font-size:clamp(.95rem,2.6vw,1.1rem);color:#4a3600;line-height:1.45;margin-top:.25rem}
+.extrahint{margin-top:10px;background:#f2fffb;border:2px dashed var(--teal);border-radius:14px;
+  padding:10px 12px;font-weight:700;color:#14625a;animation:screenIn .4s ease}
+.word-row{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(5px,1.3vw,9px);margin:8px 0 10px}
+.tile{width:clamp(32px,8.6vw,54px);height:clamp(44px,11.6vw,68px);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Baloo 2',sans-serif;font-weight:800;font-size:clamp(1.25rem,4.2vw,2.1rem);
+  background:linear-gradient(180deg,#fff,#f1f6fc);border:3px solid #d3dfee;border-bottom-width:6px;
+  color:var(--ink);transition:transform .2s}
+.tile.empty{color:transparent;position:relative}
+.tile.empty::after{content:"?";position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;color:#c3cfe2;font-size:.85em}
+.tile.on{background:linear-gradient(180deg,#fff9e3,#ffe9a8);border-color:var(--gold-dark);color:#6b4a00;
+  animation:pop .5s cubic-bezier(.2,1.7,.4,1)}
+.tile.won{background:linear-gradient(180deg,#e9fbef,#bff0cd);border-color:var(--ok);color:#186a32}
+@keyframes pop{0%{transform:translateY(14px) scale(.4);opacity:0}65%{transform:translateY(-7px) scale(1.15)}100%{transform:none}}
+.shake{animation:shake .5s}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(5px)}
+  30%,50%,70%{transform:translateX(-9px)}40%,60%{transform:translateX(9px)}}
+.letters-note{text-align:center;font-weight:900;color:var(--ink-soft);font-size:.8rem;letter-spacing:.1em;margin-bottom:6px}
+.lives{text-align:center;font-size:1.45rem;letter-spacing:.08em;line-height:1.2}
+.lives .lost{filter:grayscale(1) brightness(1.35);opacity:.4;display:inline-block;transform:scale(.85)}
+.kb{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:clamp(5px,1.2vw,9px);max-width:640px;margin:0 auto}
+.key{aspect-ratio:1/1.02;min-height:42px;border-radius:14px;font-family:'Baloo 2',sans-serif;font-weight:800;
+  font-size:clamp(.95rem,3.4vw,1.25rem);color:var(--ink);
+  background:linear-gradient(180deg,#fff,#eaf1f8);border:3px solid #d3dfee;border-bottom-width:5px;
+  transition:transform .1s,background .2s,color .2s,border-color .2s}
+.key:hover:not(:disabled){transform:translateY(-3px);border-color:var(--teal);
+  background:linear-gradient(180deg,#fff,#e2f7ff)}
+.key:active:not(:disabled){transform:translateY(2px);border-bottom-width:3px}
+.key.hit{background:linear-gradient(180deg,#d9f7e2,#a9e9bd);border-color:var(--ok);color:#186a32}
+.key.miss{background:linear-gradient(180deg,#ffe1e5,#ffc4cb);border-color:var(--danger);color:#a3121f;opacity:.8}
+.key[disabled]{cursor:not-allowed}
+.letterpills{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;min-height:32px}
+.lp{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-family:'Baloo 2',sans-serif;font-weight:800;font-size:.9rem}
+.lp.ok{background:#e5f9ec;border:2px solid #a9e9bd;color:#186a32}
+.lp.no{background:#ffe9ec;border:2px solid #ffc4cb;color:#a3121f}
+.lp.gh{background:rgba(255,255,255,.6);border:2px dashed #c3cfe2;color:#9fb0c9}
+.msg{display:flex;align-items:center;gap:.6rem;font-weight:800;border-radius:16px;padding:.7rem 1rem;
+  margin:10px 0;border:3px solid transparent;background:rgba(255,255,255,.75);color:var(--ink-soft)}
+.msg.good{background:#e9fbef;border-color:#a9e9bd;color:#186a32}
+.msg.bad{background:#ffe9ec;border-color:#ffc4cb;color:#a3121f}
+.msg.warn{background:#fff8e1;border-color:#ffe08a;color:#7a5800}
+.msg.appear{animation:screenIn .3s ease}
+
+/* ============================= RESULT CARDS ============================ */
+.result{text-align:center}
+.result .emo{font-size:clamp(2.6rem,11vw,4.2rem);line-height:1;animation:pop .6s ease}
+.result .big{font-size:clamp(2rem,8vw,3.2rem)}
+.result .word{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:clamp(1.8rem,8vw,3rem);
+  letter-spacing:.12em;color:var(--brand-dark);margin:.2rem 0}
+.factbox{background:linear-gradient(180deg,#eef9ff,#dff1ff);border:3px solid #9ecff0;border-radius:18px;
+  padding:14px 16px;margin:16px 0;box-shadow:var(--shadow-sm);animation:screenIn .5s ease}
+.factbox .lbl{font-size:.7rem;letter-spacing:.16em;font-weight:900;color:#1f6a94}
+.factbox .txt{font-weight:700;margin-top:.3rem;color:#123c5c;line-height:1.45}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px;margin:16px 0}
+.stat-box{background:rgba(255,255,255,.9);border:2px solid var(--edge);border-radius:16px;padding:.65rem .4rem;
+  box-shadow:var(--shadow-sm)}
+.stat-box span{display:block;font-size:.65rem;letter-spacing:.12em;color:var(--ink-soft);font-weight:900}
+.stat-box b{font-family:'Baloo 2',sans-serif;font-size:1.25rem}
+.rowbtns{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+
+/* ============================== SCOREBOARD ============================= */
+.board table{width:100%;border-collapse:collapse;margin-top:10px}
+.board th,.board td{padding:.55rem .5rem;text-align:center;font-weight:800;font-size:.86rem}
+.board th{color:var(--ink-soft);font-size:.68rem;letter-spacing:.12em;border-bottom:2px solid var(--edge)}
+.board tr.me td{background:linear-gradient(180deg,#f4fffc,#e6fff9)}
+.board td.rk{font-size:1.1rem}
+.board .tblwrap{overflow-x:auto}
+
+/* =============================== OVERLAYS ============================== */
+.overlay{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+  padding:16px;background:rgba(15,30,55,.55);backdrop-filter:blur(6px)}
+.overlay.open{display:flex;animation:screenIn .3s ease}
+.overlay .box{width:100%;max-width:680px;max-height:88vh;overflow:auto;position:relative}
+.overlay .close-x{position:absolute;top:10px;right:14px;font-size:1.4rem;font-weight:900;color:var(--ink-soft)}
+.confetti{position:fixed;top:-20px;width:10px;height:16px;z-index:60;border-radius:3px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(760deg);opacity:.2}}
+
+/* ================================ MISC ================================= */
+.row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center}
+.spacer{height:14px}
+.hair{height:1px;background:var(--edge);margin:14px 0}
+.center{text-align:center}
+.hidden{display:none!important}
+.benefits{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0}
+.benefit{background:rgba(255,255,255,.9);border:3px solid var(--edge);border-radius:18px;padding:14px;
+  box-shadow:var(--shadow-sm);text-align:center;transition:transform .2s}
+.benefit:hover{transform:translateY(-5px)}
+.benefit .ic{font-size:1.9rem}
+.benefit b{display:block;font-family:'Baloo 2',sans-serif;font-size:1rem;margin-top:.3rem}
+.benefit p{margin:.25rem 0 0;font-size:.8rem;color:var(--ink-soft);font-weight:700}
+.steps{counter-reset:st;display:grid;gap:10px;margin:16px 0}
+.step{counter-increment:st;position:relative;padding:.7rem .8rem .7rem 3.1rem;background:rgba(255,255,255,.9);
+  border:2px solid var(--edge);border-radius:14px;font-weight:700;box-shadow:var(--shadow-sm)}
+.step::before{content:counter(st);position:absolute;left:.7rem;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border-radius:50%;background:linear-gradient(180deg,#4fd6c2,var(--teal));
+  color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2',sans-serif;font-weight:800}
+.engine-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.9);
+  border:2px solid var(--edge);border-radius:999px;padding:.32rem .75rem;font-size:.72rem;font-weight:900;
+  color:var(--ink-soft);box-shadow:var(--shadow-sm);text-transform:uppercase}
+.engine-badge .led{width:9px;height:9px;border-radius:50%;background:var(--gold);animation:blink 1.8s infinite}
+.engine-badge .led.cpp{background:var(--ok)}
+@keyframes blink{50%{opacity:.35}}
+pre.code{background:#f4f7fb;border-radius:12px;padding:.8rem;overflow:auto;font-size:.78rem;text-align:left;margin:.6rem 0}
+@media(max-width:900px){.game-grid{grid-template-columns:1fr}}
+@media(max-width:620px){.kb{grid-template-columns:repeat(7,minmax(0,1fr))}.card{padding:16px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ THE ONE GAME WORLD (used by every screen) ============ -->
+<div class="world" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+  <div class="hill h1"></div><div class="hill h2"></div><div class="hill h3"></div>
+  <div class="tree t1">🌳</div><div class="tree t2">🌴</div><div class="tree t3">🌲</div>
+  <div class="bird b1">🕊️</div><div class="bird b2">🕊️</div>
+</div>
+<div class="veil" aria-hidden="true"></div>
+
+<!-- ============================= TOP NAV (not on Home) ================= -->
+<header id="topnav" class="hidden">
+  <span class="brand">WORD HUNT</span>
+  <button class="navbtn" data-nav="home">🏠 <span class="lbl">Home</span></button>
+  <button class="navbtn" data-nav="scoreboard">🏆 <span class="lbl">Scoreboard</span></button>
+  <button class="navbtn user" id="navUser">👤 <span class="lbl">Guest</span></button>
+  <button class="navbtn out hidden" id="navLogout">🚪 <span class="lbl">Logout</span></button>
+</header>
+
+<main>
+<!-- =========================== SCREEN: HOME ========================== -->
+<section class="screen active" id="scr-home" aria-label="Home">
+  <div class="wrap center">
+    <h1 class="logo">WORD <span>HUNT</span></h1>
+    <p class="tagline">Word Guessing Adventure</p>
+    <p class="home-desc">Read the clue, hunt the letters and discover a new fact with every word you solve!</p>
+
+    <!-- small user status (only when logged in) -->
+    <div class="usercard" id="homeUser" style="display:none"></div>
+
+    <button class="btn btn-primary btn-play" id="btnPlay">▶ PLAY</button>
+
+    <div class="row" style="margin-top:26px">
+      <button class="btn btn-ghost" data-nav="why">💡 WHY PLAY?</button>
+      <button class="btn btn-ghost" data-nav="how">📘 HOW TO PLAY</button>
+      <button class="btn btn-ghost" id="btnMute" aria-label="Toggle sound effects">🔊 Sound</button>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn btn-ghost" data-nav="scoreboard">🏆 SCOREBOARD</button>
+      <button class="btn btn-ghost" id="btnAuth">🔐 LOGIN / REGISTER</button>
+      <button class="btn btn-ghost" id="btnResetWords">♻️ RESET PROGRESS</button>
+      <button class="btn btn-ghost" id="btnAbout">⚙️ About the engine</button>
+      <button class="btn btn-ghost" id="btnShare">🔗 Share Game</button>
+    </div>
+    <p class="hintline hidden" id="shareMsg" role="status" aria-live="polite"
+       style="color:#eaf7ff;text-shadow:0 2px 8px rgba(0,0,0,.5);margin-top:10px"></p>
+
+    <div style="margin-top:22px">
+      <span class="engine-badge"><span class="led" id="led"></span> Engine: <span id="engineName">detecting…</span></span>
+    </div>
+    <p class="home-foot" id="homeFoot">clue-based words · 7 categories · 3 difficulty levels</p>
+  </div>
+</section>
+
+<!-- ======================= SCREEN: LOGIN / REGISTER ================== -->
+<section class="screen" id="scr-auth" aria-label="Login or register">
+  <div class="wrap-sm">
+    <div class="card">
+      <h2 class="title-xl">WELCOME TO WORD HUNT</h2>
+      <p class="subtitle">Log in to save your score, streak and solved words</p>
+
+      <div class="tabs" role="tablist">
+        <button class="tabbtn on" id="tabLogin" role="tab" aria-selected="true">LOGIN</button>
+        <button class="tabbtn" id="tabRegister" role="tab" aria-selected="false">REGISTER</button>
+      </div>
+      <div class="msg" id="authMsg" style="display:none"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="loginName">Username or email</label>
+          <input id="loginName" type="text" autocomplete="username" placeholder="e.g. roja or roja@mail.com">
+        </div>
+        <div class="field">
+          <label for="loginPass">Password</label>
+          <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <label class="hintline" style="display:flex;align-items:center;gap:8px;justify-content:flex-start;margin-bottom:12px">
+          <input type="checkbox" id="remember" checked style="width:16px;height:16px;accent-color:var(--teal)"> Remember me on this device
+        </label>
+        <button class="btn btn-primary btn-lg" style="width:100%" type="submit">🔐 LOGIN</button>
+        <p class="form-note">New explorer? <button type="button" class="btn btn-plain btn-sm" id="goRegister">CREATE AN ACCOUNT</button></p>
+      </form>
+
+      <form id="regForm" style="display:none" novalidate>
+        <div class="field">
+          <label for="regName">Username</label>
+          <input id="regName" type="text" autocomplete="username" placeholder="3–20 characters">
+        </div>
+        <div class="field">
+          <label for="regEmail">Email</label>
+          <input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="regPass">Password</label>
+          <input id="regPass" type="password" autocomplete="new-password" placeholder="at least 4 characters">
+        </div>
+        <div class="field">
+          <label for="regPass2">Confirm password</label>
+          <input id="regPass2" type="password" autocomplete="new-password" placeholder="repeat your password">
+        </div>
+        <button class="btn btn-teal btn-lg" style="width:100%" type="submit">✨ CREATE ACCOUNT</button>
+        <p class="form-note">Already registered? <button type="button" class="btn btn-plain btn-sm" id="goLogin">LOGIN</button></p>
+      </form>
+
+      <p class="form-note">🔒 Passwords are stored as salted SHA-256 hashes, never in plain text.</p>
+      <div class="spacer"></div>
+      <div class="row"><button class="btn btn-plain" id="btnAuthBack">← Back</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== SCREEN: CATEGORY ========================= -->
+<section class="screen" id="scr-category" aria-label="Choose a category">
+  <div class="wrap-md">
+    <div class="mini" id="catMini"></div>
+    <div class="card">
+      <h2 class="title-xl">🗺️ CHOOSE YOUR CATEGORY</h2>
+      <p class="subtitle">Every category has its own words, clues and facts — a word you have already solved never comes back.</p>
+      <div class="grid-cats" id="catGrid" role="group" aria-label="Word categories"></div>
+      <div class="msg warn" id="catWarn" style="display:none"></div>
+      <div class="spacer"></div>
+      <div class="rowbtns">
+        <button class="btn btn-plain" id="btnCatBack">← Back</button>
+        <button class="btn btn-primary" id="btnCatNext" disabled>CONTINUE →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SCREEN: DIFFICULTY ======================== -->
+<section class="screen" id="scr-difficulty" aria-label="Select difficulty">
+  <div class="wrap-sm">
+    <div class="mini" id="diffMini"></div>
+    <div class="card">
+      <h2 class="title-xl">🎚️ SELECT DIFFICULTY</h2>
+      <p class="subtitle">Difficulty changes your lives, the words offered and the score multiplier.</p>
+      <div class="grid-diff" id="diffGrid" role="group" aria-label="Difficulty levels"></div>
+      <div class="msg warn" id="diffWarn" style="display:none"></div>
+      <div class="spacer"></div>
+      <div class="rowbtns">
+        <button class="btn btn-plain" id="btnDiffBack">← Back</button>
+        <button class="btn btn-teal btn-lg" id="btnStart" disabled>🎮 START GAME</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== SCREEN: GAME =========================== -->
+<section class="screen" id="scr-game" aria-label="Game">
+  <div class="wrap">
+    <div class="mini" id="gameMini"></div>
+    <div class="game-grid">
+      <!-- LEFT: explorer illustration -->
+      <div class="stage-wrap">
+        <span class="tag" id="stageCat">CATEGORY</span>
+        <svg viewBox="0 0 300 300" width="100%" height="auto" role="img"
+             aria-label="Friendly cartoon explorer. A new part appears after every wrong guess.">
+          <g>
+            <rect x="6" y="34" width="288" height="18" rx="9" fill="#a9743f"/>
+            <rect x="6" y="34" width="288" height="7" rx="3.5" fill="#c08c52"/>
+            <circle cx="34" cy="30" r="20" fill="#7ac74f"/><circle cx="58" cy="24" r="15" fill="#5fae3f"/>
+            <circle cx="266" cy="28" r="18" fill="#7ac74f"/><circle cx="288" cy="34" r="13" fill="#5fae3f"/>
+            <line x1="150" y1="52" x2="150" y2="92" stroke="#c9a227" stroke-width="7" stroke-linecap="round"/>
+            <circle cx="150" cy="92" r="6" fill="#a5811a"/>
+          </g>
+          <g id="hero">
+            <g class="part" data-s="1">
+              <circle cx="150" cy="120" r="30" fill="#ffd9b0"/>
+              <path d="M120 116 q30 -34 60 0 q-6 -26 -30 -26 q-24 0 -30 26z" fill="#6b4a2b"/>
+              <circle cx="118" cy="120" r="6" fill="#ffd9b0"/><circle cx="182" cy="120" r="6" fill="#ffd9b0"/>
+            </g>
+            <g class="part" data-s="2">
+              <circle cx="139" cy="118" r="4.6" fill="#22314f"/><circle cx="161" cy="118" r="4.6" fill="#22314f"/>
+              <circle cx="140.5" cy="116.5" r="1.6" fill="#fff"/><circle cx="162.5" cy="116.5" r="1.6" fill="#fff"/>
+              <path id="mouth" d="M139 133 q11 10 22 0" stroke="#c0563f" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+              <circle cx="127" cy="128" r="5" fill="#ff9aa5" opacity=".55"/>
+              <circle cx="173" cy="128" r="5" fill="#ff9aa5" opacity=".55"/>
+            </g>
+            <g class="part" data-s="3">
+              <path d="M150 148 q-26 4 -28 46 h56 q-2 -42 -28 -46z" fill="#2fb8a6"/>
+              <path d="M150 148 q-14 2 -18 20 q18 8 36 0 q-4 -18 -18 -20z" fill="#ffe08a"/>
+              <rect x="136" y="176" width="28" height="7" rx="3.5" fill="#1f8d80"/>
+            </g>
+            <g class="part" data-s="4">
+              <path d="M128 158 q-24 10 -28 34" stroke="#ffd9b0" stroke-width="11" fill="none" stroke-linecap="round"/>
+              <circle cx="98" cy="196" r="8.5" fill="#ffd9b0"/>
+            </g>
+            <g class="part" data-s="5">
+              <path d="M172 158 q24 10 28 34" stroke="#ffd9b0" stroke-width="11" fill="none" stroke-linecap="round"/>
+              <circle cx="202" cy="196" r="8.5" fill="#ffd9b0"/>
+            </g>
+            <g class="part" data-s="6">
+              <path d="M142 192 q-8 26 -12 42" stroke="#3b5b8c" stroke-width="12" fill="none" stroke-linecap="round"/>
+              <path d="M158 192 q8 26 12 42" stroke="#3b5b8c" stroke-width="12" fill="none" stroke-linecap="round"/>
+              <ellipse cx="126" cy="238" rx="16" ry="9" fill="#8a5a2b"/><ellipse cx="174" cy="238" rx="16" ry="9" fill="#8a5a2b"/>
+              <path d="M118 96 q32 -20 64 0 q-10 -26 -32 -26 q-22 0 -32 26z" fill="#ff8a3d"/>
+              <path d="M114 98 q36 14 72 0 q-36 -10 -72 0z" fill="#e2661f"/>
+            </g>
+            <g class="part" data-s="7"><path class="sweat" d="M196 100 q6 10 0 14 q-6 -4 0 -14z" fill="#4fc3f7"/></g>
+          </g>
+          <rect x="0" y="252" width="300" height="48" fill="#8fd26a"/>
+          <rect x="0" y="252" width="300" height="8" fill="#7ac74f"/>
+          <g opacity=".8"><circle cx="52" cy="272" r="7" fill="#6cbf52"/><circle cx="240" cy="284" r="9" fill="#6cbf52"/>
+            <circle cx="150" cy="278" r="5" fill="#6cbf52"/></g>
+        </svg>
+        <div style="padding:10px 12px 14px">
+          <div class="letters-note">REMAINING LIVES</div>
+          <div class="lives" id="lives" aria-live="polite">❤️❤️❤️❤️❤️❤️</div>
+          <div class="center" style="font-weight:900;color:var(--ink-soft)"><span id="livesNum">6</span> / <span id="livesMax">6</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: clue + word + keyboard -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between;gap:10px;margin-bottom:10px">
+          <span class="pill">📂 <b id="gameCat">—</b></span>
+          <span class="pill">🎚 <b id="gameDiff">—</b></span>
+          <span class="pill">⏱ <b id="gameTimer">30</b>s</span>
+        </div>
+        <div class="clue">
+          <div class="lbl">💡 CLUE</div>
+          <div class="txt" id="clueText">Read the clue and start guessing.</div>
+          <div class="extrahint hidden" id="extraHint"></div>
+        </div>
+        <div class="letters-note" id="lenNote">— LETTERS</div>
+        <div class="word-row" id="wordRow"></div>
+        <div class="msg" id="gameMsg" role="status" aria-live="polite">🔎 Tap a letter to start hunting!</div>
+        <div class="kb" id="kb" role="group" aria-label="Alphabet keyboard"></div>
+        <div class="spacer"></div>
+        <div class="rowbtns">
+          <button class="btn btn-gold" id="btnHint">💡 HINT (-15)</button>
+          <button class="btn btn-plain" id="btnGiveUp">🏳️ GIVE UP</button>
+          <button class="btn btn-plain" data-nav="home">🏠 HOME</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="letters-note">LETTERS YOU TRIED</div>
+        <div class="letterpills" id="guessedPills"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== SCREEN: WIN ============================ -->
+<section class="screen" id="scr-win" aria-label="You won">
+  <div class="wrap-sm">
+    <div class="card result">
+      <div class="emo">🎉</div>
+      <h2 class="big" style="color:var(--teal-dark)">YOU WON!</h2>
+      <div class="letters-note">ANSWER</div>
+      <div class="word" id="winWord">WORD</div>
+      <div class="hintline" id="winCatLine">Category · Difficulty</div>
+      <div class="stats">
+        <div class="stat-box"><span>SCORE</span><b id="winPoints">+0</b></div>
+        <div class="stat-box"><span>TOTAL SCORE</span><b id="winTotal">0</b></div>
+        <div class="stat-box"><span>STREAK</span><b id="winStreak">🔥 1</b></div>
+        <div class="stat-box"><span>MISTAKES</span><b id="winMiss">0</b></div>
+      </div>
+      <div class="factbox"><div class="lbl">💡 DID YOU KNOW?</div><div class="txt" id="winFact">Interesting fact</div></div>
+      <div class="rowbtns">
+        <button class="btn btn-primary" id="btnWinAgain">🔄 PLAY AGAIN</button>
+        <button class="btn btn-teal" id="btnWinNext">➡ NEXT WORD</button>
+        <button class="btn btn-plain" data-nav="home">🏠 HOME</button>
+        <button class="btn btn-plain" id="btnWinBack">← BACK</button>
+      </div>
+      <p class="hintline" style="margin-top:12px">Both PLAY AGAIN and NEXT WORD pick a brand new unused word and keep your score and streak.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SCREEN: GAME OVER ========================= -->
+<section class="screen" id="scr-over" aria-label="Game over">
+  <div class="wrap-sm">
+    <div class="card result">
+      <div class="emo">💀</div>
+      <h2 class="big" style="color:var(--danger-dark)">GAME OVER</h2>
+      <p class="subtitle" style="margin-bottom:.4rem">Better luck next time! The explorer made it home safely.</p>
+      <div class="letters-note">THE WORD WAS</div>
+      <div class="word" id="loseWord">WORD</div>
+      <div class="hintline" id="loseCatLine">Category · Difficulty</div>
+      <div class="factbox"><div class="lbl">💡 DID YOU KNOW?</div><div class="txt" id="loseFact">Interesting fact</div></div>
+      <div class="stats">
+        <div class="stat-box"><span>SCORE</span><b id="loseScore">0</b></div>
+        <div class="stat-box"><span>STREAK</span><b id="loseStreak">🔥 0</b></div>
+        <div class="stat-box"><span>LIVES USED</span><b id="loseLives">0</b></div>
+      </div>
+      <div class="rowbtns">
+        <button class="btn btn-danger" id="btnTryAgain">🔄 TRY AGAIN</button>
+        <button class="btn btn-teal" id="btnLoseNext">➡ NEXT WORD</button>
+        <button class="btn btn-plain" data-nav="category">🗂 CHANGE CATEGORY</button>
+        <button class="btn btn-plain" data-nav="home">🏠 HOME</button>
+        <button class="btn btn-plain" id="btnOverBack">← BACK</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SCREEN: CATEGORY COMPLETED =================== -->
+<section class="screen" id="scr-completed" aria-label="Category completed">
+  <div class="wrap-sm">
+    <div class="card result">
+      <div class="emo">🏆</div>
+      <h2 class="big" style="color:var(--gold-dark)">CATEGORY COMPLETED!</h2>
+      <p class="subtitle" id="doneText">You have guessed all available words in this category.</p>
+      <div class="stats">
+        <div class="stat-box"><span>TOTAL SCORE</span><b id="doneScore">0</b></div>
+        <div class="stat-box"><span>STREAK</span><b id="doneStreak">🔥 0</b></div>
+        <div class="stat-box"><span>WORDS SOLVED</span><b id="doneWords">0</b></div>
+      </div>
+      <div class="rowbtns">
+        <button class="btn btn-primary" data-nav="category">🗂 ANOTHER CATEGORY</button>
+        <button class="btn btn-gold" id="btnResetCat">♻️ RESET CATEGORY</button>
+        <button class="btn btn-plain" data-nav="home">🏠 HOME</button>
+      </div>
+      <p class="hintline" style="margin-top:12px">Resetting a category makes its words available again.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= SCREEN: WHY PLAY ======================== -->
+<section class="screen" id="scr-why" aria-label="Why play">
+  <div class="wrap-md">
+    <div class="card">
+      <h2 class="title-xl">💡 WHY PLAY?</h2>
+      <p class="subtitle">WORD HUNT is not only a game — it is a fun way to train your brain.</p>
+      <div class="benefits">
+        <div class="benefit"><div class="ic">🧠</div><b>Memory</b><p>Remember the clue, the letters you tried and what is still hidden.</p></div>
+        <div class="benefit"><div class="ic">📚</div><b>Vocabulary</b><p>Discover new words from seven different categories.</p></div>
+        <div class="benefit"><div class="ic">✍️</div><b>Spelling</b><p>Letter-by-letter guessing makes you think about every letter.</p></div>
+        <div class="benefit"><div class="ic">⚡</div><b>Quick thinking</b><p>Wrong guesses cost lives, so you learn to decide fast.</p></div>
+        <div class="benefit"><div class="ic">🌍</div><b>General knowledge</b><p>A new "did you know" fact appears after every word.</p></div>
+        <div class="benefit"><div class="ic">🎯</div><b>Concentration</b><p>Finding the whole word needs focus and patience.</p></div>
+      </div>
+      <div class="rowbtns">
+        <button class="btn btn-plain" id="btnWhyBack">← Back</button>
+        <button class="btn btn-primary btn-lg" id="btnWhyPlay">▶ PLAY NOW</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= SCREEN: HOW TO PLAY ======================= -->
+<section class="screen" id="scr-how" aria-label="How to play">
+  <div class="wrap-sm">
+    <div class="card">
+      <h2 class="title-xl">📘 HOW TO PLAY</h2>
+      <p class="subtitle">Ten simple steps to become a word hunter</p>
+      <div class="steps">
+        <div class="step">Login or register — your score, streak and solved words are saved to your account.</div>
+        <div class="step">Choose a category that you like.</div>
+        <div class="step">Choose a difficulty: Easy 8 lives, Medium 6, Hard 4.</div>
+        <div class="step">Read the clue carefully — it describes the hidden word.</div>
+        <div class="step">Guess letters using the keyboard or your device keys.</div>
+        <div class="step">Avoid losing lives: each wrong guess costs a life and 5 points.</div>
+        <div class="step">Use hints carefully — the first gives an extra clue, the second reveals a letter (−15 points each).</div>
+        <div class="step">Complete the whole word to win the round.</div>
+        <div class="step">Earn points: +10 per letter, +50 bonus, multiplied by your difficulty.</div>
+        <div class="step">Win several words in a row to build your 🔥 streak!</div>
+      </div>
+      <div class="rowbtns">
+        <button class="btn btn-plain" id="btnHowBack">← Back</button>
+        <button class="btn btn-primary btn-lg" id="btnHowPlay">▶ PLAY NOW</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ======================= OVERLAY: SCOREBOARD ======================= -->
+<div class="overlay" id="ov-scoreboard" role="dialog" aria-modal="true" aria-label="Scoreboard">
+  <div class="card box board">
+    <button class="close-x" data-close="ov-scoreboard" aria-label="Close scoreboard">✕</button>
+    <h2 class="title-xl">🏆 SCOREBOARD</h2>
+    <p class="subtitle">Highest scores first — every registered explorer</p>
+    <div id="boardBody"></div>
+
+    <div class="hair"></div>
+    <div class="center">
+      <button class="btn btn-plain btn-sm" id="cloudToggle">🌐 Share this scoreboard online</button>
+    </div>
+    <div id="cloudPanel" class="hidden" style="margin-top:12px">
+      <p class="hintline" style="text-align:left">Connect a free Supabase project once and everyone who opens the public
+        link shares the same leaderboard — accounts, scores and used words live in the database and survive restarts.
+        The setting is remembered in this browser; README.md has the two-minute setup.</p>
+      <div class="msg" id="cloudMsg" style="display:none"></div>
+      <div class="field"><label for="cloudUrl">Project URL</label><input id="cloudUrl" placeholder="https://xxxxxxxx.supabase.co"></div>
+      <div class="field"><label for="cloudKey">Public anon key</label><input id="cloudKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5…"></div>
+      <div class="rowbtns">
+        <button class="btn btn-teal btn-sm" id="btnCloudSave">🔗 CONNECT DATABASE</button>
+        <button class="btn btn-plain btn-sm" id="btnCloudClear">Use this browser only</button>
+      </div>
+      <p class="hintline" id="cloudState" style="margin-top:10px"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== OVERLAY: ABOUT ENGINE ==================== -->
+<div class="overlay" id="ov-about" role="dialog" aria-modal="true" aria-label="About the engine">
+  <div class="card box">
+    <button class="close-x" data-close="ov-about" aria-label="Close">✕</button>
+    <h2 class="title-xl">⚙️ ABOUT THE ENGINE</h2>
+    <p class="subtitle" id="aboutMode">Engine status</p>
+    <p class="hintline" style="text-align:left">Every rule of WORD HUNT — the word database with clues, hints and facts,
+      the per-player no-repeat selection, lives, scoring, streaks and win/lose — lives in the C++ class
+      <b>WordHuntGame</b> (<code>game.h</code> / <code>game.cpp</code>). This page only sends short text commands such as
+      <code>GUESS|C</code> and paints the state block the engine returns.</p>
+    <pre class="code">emcc -std=c++11 game.cpp -O2 -s MODULARIZE=1 \
+     -s EXPORTED_FUNCTIONS=_wordhunt_command -o wasm/game.js</pre>
+    <p class="hintline" style="text-align:left">Compile once with Emscripten to run the real C++ in the browser. Without the build,
+      the page uses the offline preview, which reads the word database straight out of <code>game.cpp</code>.</p>
+    <div class="center" style="margin-top:12px"><button class="btn btn-teal" data-close="ov-about">GOT IT</button></div>
+  </div>
+</div>
+
+<!-- ======================== OVERLAY: CONFIRM ========================= -->
+<div class="overlay" id="ov-confirm" role="dialog" aria-modal="true" aria-label="Confirmation">
+  <div class="card" style="max-width:460px;width:100%">
+    <h3 class="center" id="cfTitle">Are you sure?</h3>
+    <p class="hintline" id="cfText" style="margin:.6rem 0 1rem"></p>
+    <div class="rowbtns">
+      <button class="btn btn-danger" id="cfYes">YES</button>
+      <button class="btn btn-plain" id="cfNo">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   BRIDGE + ACCOUNTS LAYER  (the only JavaScript in the project)
+   ----------------------------------------------------------------------------
+   1. ACCOUNTS / SESSION  – register, login, per-player progress, shared cloud
+   2. ENGINE BRIDGE       – text commands to the C++ engine, paint the state
+   3. UI                  – screens, navigation history, rendering, sounds
+   NO GAME RULE lives here: words, clues, hints, no-repeat selection, lives,
+   score, streak and win/lose are all decided by game.cpp (C++).
+   ========================================================================== */
+
+/* shared-database settings — editable at runtime from Scoreboard ▸ "Share this
+   scoreboard online" and remembered in this browser                         */
+const CloudCfg={ key:'wordhunt_cloud',
+  load(){ try{ const c=JSON.parse(localStorage.getItem(this.key));
+      return (c&&c.url&&c.anonKey)?c:{url:'',anonKey:'',table:'wh_users'}; }
+    catch(e){ return {url:'',anonKey:'',table:'wh_users'}; } },
+  save(c){ try{ localStorage.setItem(this.key,JSON.stringify(c)); }catch(e){} } };
+let CLOUD = CloudCfg.load();
+
+/* ============================= 1. ACCOUNTS ============================== */
+const Users = {
+  get mode(){ return (CLOUD.url && CLOUD.anonKey) ? 'cloud' : 'local'; },
+  KEY:'wordhunt_users_v1', SESSION:'wordhunt_session_v1',
+  cache:[], session:null,
+
+  async loadLocal(){ try{ this.cache=JSON.parse(localStorage.getItem(this.KEY)||'[]'); }catch(e){ this.cache=[]; } },
+  saveLocal(){ localStorage.setItem(this.KEY, JSON.stringify(this.cache)); },
+  async cloud(method,path,body){
+    const r=await fetch(CLOUD.url+'/rest/v1/'+path,{ method,
+      headers:{ 'apikey':CLOUD.anonKey,'Authorization':'Bearer '+CLOUD.anonKey,'Content-Type':'application/json',
+        ...(method==='POST'?{'Prefer':'return=representation'}:{}) },
+      body: body?JSON.stringify(body):undefined });
+    if(!r.ok) throw new Error('database error '+r.status);
+    return r.json();
+  },
+  /* cloud rows are mapped to the same record shape as local ones */
+  async all(){
+    if(this.mode==='cloud'){
+      const rows=await this.cloud('GET', CLOUD.table+'?select=*');
+      this.cache=rows.map(r=>{ let used={}; try{ used=JSON.parse(r.used||'{}'); }catch(e){}
+        return { id:r.id,name:r.username,email:r.email,salt:r.salt,hash:r.hash,
+          score:r.score||0,best:r.best||0,wins:r.wins||0,losses:r.losses||0,words:r.words||0,
+          games:r.games||0,correct:r.correct||0,streak:r.streak||0,bestStreak:r.beststreak||0,
+          difficulty:r.difficulty||2,used,joined:r.joined||'' }; });
+    } else await this.loadLocal();
+    return this.cache;
+  },
+  async persist(u){
+    if(this.mode==='cloud'){
+      await this.cloud('PATCH', CLOUD.table+'?id=eq.'+encodeURIComponent(u.id), { id:u.id,username:u.name,
+        email:u.email,salt:u.salt,hash:u.hash,score:u.score,best:u.best,wins:u.wins,losses:u.losses,
+        words:u.words,games:u.games||0,correct:u.correct||0,streak:u.streak,beststreak:u.bestStreak,
+        difficulty:u.difficulty,used:JSON.stringify(u.used||{}),joined:u.joined });
+    } else this.saveLocal();
+  },
+  find(q){ q=String(q).toLowerCase(); return this.cache.find(u=>u.name.toLowerCase()===q||(u.email||'').toLowerCase()===q); },
+  async register(name,email,pass){
+    await this.all();
+    if(this.cache.some(u=>u.name.toLowerCase()===name.toLowerCase())) throw new Error('That username is already taken. Try another one.');
+    if(this.cache.some(u=>(u.email||'').toLowerCase()===email.toLowerCase())) throw new Error('That email is already registered. Try logging in.');
+    const s=Math.random().toString(36).slice(2,12);
+    const u={ id:(this.mode==='cloud'&&crypto.randomUUID)?crypto.randomUUID():'u'+Date.now()+Math.floor(Math.random()*999),
+      name,email,salt:s,hash:await sha256(s+pass),score:0,best:0,wins:0,losses:0,words:0,games:0,correct:0,
+      streak:0,bestStreak:0,difficulty:2,used:{},joined:new Date().toISOString().slice(0,10) };
+    if(this.mode==='cloud'){
+      await this.cloud('POST', CLOUD.table, { id:u.id,username:u.name,email:u.email,salt:u.salt,hash:u.hash,
+        score:0,best:0,wins:0,losses:0,words:0,games:0,correct:0,streak:0,beststreak:0,difficulty:2,used:'{}',joined:u.joined });
+      this.cache.push(u);
+    } else { this.cache.push(u); this.saveLocal(); }
+    return u;
+  },
+  async login(q,pass){
+    await this.all();
+    const u=this.find(q);
+    if(!u) throw new Error('No account found for "'+q+'". Please register first.');
+    if(await sha256(u.salt+pass)!==u.hash) throw new Error('Incorrect password. Please try again.');
+    return u;
+  },
+  remember(u,keep){ this.session=u.id; (keep?localStorage:sessionStorage).setItem(this.SESSION,u.id);
+    (keep?sessionStorage:localStorage).removeItem(this.SESSION); },
+  forget(){ this.session=null; localStorage.removeItem(this.SESSION); sessionStorage.removeItem(this.SESSION); },
+  restore(){ return localStorage.getItem(this.SESSION)||sessionStorage.getItem(this.SESSION); },
+  current(){ return this.cache.find(u=>u.id===this.session)||null; }
+};
+async function sha256(text){
+  try{ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  catch(e){ let h=5381; for(let i=0;i<text.length;i++) h=((h<<5)+h+text.charCodeAt(i))>>>0; return 'x'+h.toString(16); }
+}
+
+/* ============================ 2. ENGINE BRIDGE ========================== */
+/* ENGINE A — the real C++ engine compiled to WebAssembly (wasm/game.js)    */
+const WasmEngine={
+  name:'C++ ENGINE · WEBASSEMBLY',
+  async boot(){
+    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='wasm/game.js';
+      s.onload=res; s.onerror=()=>rej(new Error('no wasm/game.js')); document.head.appendChild(s);
+      setTimeout(()=>rej(new Error('timeout')),3500); });
+    const M=(typeof Module==='function')?await Module():(window.Module||null);
+    if(!M||!M._wordhunt_command) throw new Error('no export');
+    this.run=M.ccall ? c=>M.ccall('wordhunt_command','string',['string'],[c])
+      : c=>{ const b=M._malloc(c.length+1); M.stringToUTF8(c,b,c.length+1);
+             const p=M._wordhunt_command(b); M._free(b); return M.UTF8ToString(p); };
+    if(!/MASK\|/.test(this.run('STATUS'))) throw new Error('bad protocol');
+  }
+};
+/* ENGINE B — offline preview: reads the word database straight out of the
+   C++ source at runtime and mirrors the rules of the WordHuntGame class     */
+class MirrorGame{
+  constructor(words){ this.words=words; this.cats=[...new Set(words.map(w=>w.category))]; this.resetAll(); }
+  resetAll(){ this.used={}; this.cats.forEach(c=>this.used[c]=[]); this.resetRound(); this.score=0; this.streak=0; this.wordsCompleted=0; }
+  resetRound(){ this.cur=null; this.cat=0; this.diff=2; this.guessed=[]; this.wrong=[]; this.lives=6; this.max=6;
+    this.roundScore=0; this.hints=2; this.status='NOT_STARTED'; this.msg='Welcome to WORD HUNT!'; this.revealed=''; }
+  catName(i){ return this.cats[i]||'UNKNOWN'; }
+  livesFor(d){ return d===1?8:(d===2?6:4); }
+  mult(d){ return d===1?1:(d===2?1.5:2); }
+  pts(b){ return Math.round(b*this.mult(this.diff)); }
+  available(i){ const n=this.catName(i); return this.words.filter(w=>w.category===n&&this.used[n].indexOf(w.word)<0); }
+  mask(){ return this.cur?[...this.cur.word].map((c,i)=>(i?' ':'')+(this.guessed.indexOf(c)>=0?c:'_')).join(''):''; }
+  won(){ return !!this.cur&&[...this.cur.word].every(c=>this.guessed.indexOf(c)>=0); }
+  add(p){ this.roundScore+=p; this.score+=p; }
+  lose(p){ this.roundScore-=p; this.score=Math.max(0,this.score-p); }
+  pick(cat,seed){
+    const avail=this.available(cat); if(!avail.length) return null;
+    const pool=avail.filter(w=>this.diff===1?w.difficulty==='EASY':this.diff===2?w.difficulty!=='HARD':w.difficulty!=='EASY');
+    const list=pool.length?pool:avail;
+    const i=seed?((seed*1103515245+12345)>>>0)%list.length:Math.floor(Math.random()*list.length);
+    const c=list[i]; this.used[this.catName(cat)].push(c.word); return c;        /* marked used NOW */
+  }
+  finish(won){
+    if(won){ const b=this.pts(50); this.add(b); this.streak++; this.wordsCompleted++; this.status='WON';
+      this.msg='You found the word! +'+b+' bonus points.'; return; }
+    this.streak=0; this.status='LOST'; this.msg='Game over! The word was '+this.cur.word+'.';
+  }
+  guess(L){
+    L=(L||'').toUpperCase();
+    if(this.status!=='PLAYING'){ this.msg='This round is already over.'; return 'ERROR'; }
+    if(L.length!==1||L<'A'||L>'Z'){ this.msg='Only letters from A to Z are allowed.'; return 'INVALID'; }
+    if(this.guessed.indexOf(L)>=0){ this.msg='You already guessed '+L+'!'; return 'DUPLICATE'; }
+    this.guessed.push(L);
+    if(this.cur.word.indexOf(L)>=0){
+      const n=[...this.cur.word].filter(c=>c===L).length,p=this.pts(10*n); this.add(p);
+      this.msg='Correct! '+L+' appears '+n+' time(s). +'+p+' points.';
+      if(this.won()){ this.finish(true); return 'WIN'; } return 'CORRECT';
+    }
+    this.wrong.push(L); this.lives--; this.lose(5);
+    if(this.lives<=0){ this.finish(false); return 'LOSE'; }
+    this.msg='Wrong! '+L+' is not in the word. -5 points. '+this.lives+' lives left.'; return 'WRONG';
+  }
+  hint(){
+    if(this.status!=='PLAYING'){ this.msg='No game running right now.'; return; }
+    if(this.hints<=0){ this.msg='No hints left for this word!'; return; }
+    this.lose(15);
+    if(this.hints===2){ this.revealed=(this.diff===3&&this.cur.hint2)?this.cur.hint2:this.cur.hint1; this.hints--;
+      this.msg='Hint used! -15 points. An extra clue is now shown.'; return; }
+    const c=[...this.cur.word].find(ch=>this.guessed.indexOf(ch)<0);
+    if(!c){ this.msg='Nothing left to reveal!'; return; }
+    this.guessed.push(c); this.hints--; this.msg='Hint used! -15 points. The letter '+c+' is part of the word.';
+    if(this.won()) this.finish(true);
+  }
+  usedCsv(){ return Object.keys(this.used).filter(c=>this.used[c].length).map(c=>c+':'+this.used[c].join(',')).join(';'); }
+  setUsed(csv){ this.cats.forEach(c=>this.used[c]=[]);
+    (csv||'').split(';').filter(Boolean).forEach(p=>{ const [c,l]=p.split(':'); if(this.used[c]) this.used[c]=l?l.split(','):[]; }); }
+  doneCats(){ return this.cats.map((c,i)=>this.available(i).length===0?i:-1).filter(i=>i>=0).join(','); }
+  counts(){ return this.cats.map(c=>this.words.filter(w=>w.category===c).length).join(','); }
+  state(ev){
+    const L=['CAT|'+this.catName(this.cat),'CLUE|'+(this.cur?this.cur.clue:''),'HINTTEXT|'+this.revealed,
+      'LEN|'+(this.cur?this.cur.word.length:0),'MASK|'+this.mask(),'GUESSED|'+this.guessed.join(','),
+      'WRONG|'+this.wrong.join(','),'LIVES|'+this.lives,'MAX|'+this.max,'SCORE|'+this.score,'ROUND|'+this.roundScore,
+      'STREAK|'+this.streak,'HINTS|'+this.hints,'WORDS|'+this.wordsCompleted,'REMAINING|'+this.available(this.cat).length,
+      'COUNTS|'+this.counts(),'STATUS|'+this.status,'EVENT|'+ev,'MESSAGE|'+this.msg,'DIFF|'+this.diff,
+      'DONECATS|'+this.doneCats(),'USED|'+this.usedCsv()];
+    if(this.status==='WON'||this.status==='LOST') L.push('WORD|'+(this.cur?this.cur.word:''));
+    if(this.status==='WON') L.push('FACT|'+(this.cur?this.cur.fact:''));
+    return L.join('\n');
+  }
+  handleCommand(c){
+    const p=c.split('|'),h=p[0];
+    if(h==='SETUSED'){ this.setUsed(p[1]); return this.state('READY'); }
+    if(h==='RESUME'){ this.score=Math.max(0,parseInt(p[1]||'0',10)); this.streak=parseInt(p[2]||'0',10);
+      this.wordsCompleted=parseInt(p[3]||'0',10); this.msg='Welcome back!'; return this.state('READY'); }
+    if(h==='START'){
+      const cat=parseInt(p[1],10),diff=parseInt(p[2],10);
+      if(isNaN(cat)||cat<0||cat>=this.cats.length){ this.msg='Please choose a category first.'; return this.state('ERROR'); }
+      if(isNaN(diff)||diff<1||diff>3){ this.msg='Please select a difficulty first.'; return this.state('ERROR'); }
+      this.cat=cat; this.diff=diff; this.guessed=[]; this.wrong=[]; this.max=this.livesFor(diff); this.lives=this.max;
+      this.roundScore=0; this.hints=2; this.revealed='';
+      const next=this.pick(cat,parseInt(p[3]||'0',10));
+      if(!next){ this.status='COMPLETED'; this.msg='Congratulations! You completed all words in '+this.catName(cat)+'.'; return this.state('COMPLETED'); }
+      this.cur=next; this.status='PLAYING'; this.msg='New '+this.catName(cat)+' word! You have '+this.max+' lives.'; return this.state('NEW');
+    }
+    if(h==='GUESS'){ if(!p[1]){ this.msg='Please choose a letter.'; return this.state('INVALID'); }
+      if(p[1].length>1){ this.msg='One letter at a time please!'; return this.state('INVALID'); }
+      return this.state(this.guess(p[1])); }
+    if(h==='HINT'){ this.hint(); return this.state('HINT'); }
+    if(h==='GIVEUP'){ if(this.status!=='PLAYING'){ this.msg='No game running.'; return this.state('ERROR'); }
+      this.finish(false); this.msg='You gave up! The word was '+this.cur.word+'.'; return this.state('LOSE'); }
+    if(h==='RESETCAT'){ const i=parseInt(p[1],10); if(this.cats[i]){ this.used[this.cats[i]]=[]; this.msg=this.catName(i)+' words are available again.'; } return this.state('RESETCAT'); }
+    if(h==='RESET'){ const u=this.usedCsv(); this.resetAll(); this.setUsed(u); this.msg='New game.'; return this.state('RESET'); }
+    if(h==='STATUS') return this.state('STATUS');
+    this.msg='Unknown command.'; return this.state('ERROR');
+  }
+}
+const PreviewEngine={
+  name:'OFFLINE PREVIEW ENGINE', game:null,
+  async boot(){
+    const r=await fetch('game.cpp',{cache:'no-store'}); if(!r.ok) throw new Error('game.cpp unreachable');
+    const src=await r.text();
+    const start=src.indexOf('WordData WORD_DATABASE[]'),open=src.indexOf('{',start),close=src.indexOf('};',open);
+    if(start<0||open<0||close<0) throw new Error('database not found');
+    const body=src.slice(open,close),strings=[]; let m; const re=/"((?:[^"\\]|\\.)*)"/g;
+    while((m=re.exec(body))) strings.push(m[1].replace(/\\"/g,'"'));
+    if(strings.length%7!==0||strings.length<49) throw new Error('database unreadable');
+    const words=[]; for(let i=0;i+6<strings.length;i+=7)
+      words.push({word:strings[i],category:strings[i+1],clue:strings[i+2],hint1:strings[i+3],hint2:strings[i+4],fact:strings[i+5],difficulty:strings[i+6]});
+    this.game=new MirrorGame(words);
+  },
+  run(c){ return this.game.handleCommand(c); }
+};
+const Engine={
+  active:null, ready:null, failed:false,
+  init(){ this.ready=(async()=>{
+      try{ await WasmEngine.boot(); this.active=WasmEngine; return WasmEngine.name; }
+      catch(e1){ try{ await PreviewEngine.boot(); this.active=PreviewEngine; return PreviewEngine.name; }
+        catch(e2){ this.failed=true; return 'ENGINE UNAVAILABLE'; } } })();
+    return this.ready; },
+  async run(c){ await this.ready; if(!this.active) throw new Error('no engine'); return this.active.run(c); }
+};
+const parse=t=>{ const o={}; String(t).trim().split(/\r?\n/).forEach(l=>{ const i=l.indexOf('|'); if(i>0) o[l.slice(0,i)]=l.slice(i+1); }); return o; };
+const cmd=async c=>{ try{ return parse(await Engine.run(c)); }
+  catch(e){ return {EVENT:'ERROR',STATUS:'ERROR',MESSAGE:'The C++ engine could not be loaded. Please open the game over http://.'}; } };
+
+/* =============================== SOUNDS ================================ */
+const Sound={
+  muted:false,_c:{},_x:null,
+  files:{click:'assets/sounds/click.mp3',correct:'assets/sounds/correct.mp3',wrong:'assets/sounds/wrong.mp3',
+         hint:'assets/sounds/hint.mp3',win:'assets/sounds/win.mp3',lose:'assets/sounds/lose.mp3'},
+  ctx(){ if(!this._x) this._x=new (window.AudioContext||window.webkitAudioContext)(); return this._x; },
+  play(n){ if(this.muted) return; const f=this.files[n];
+    if(f){ let a=this._c[n]; if(a===undefined){ a=new Audio(f); this._c[n]=a; }
+      if(a&&!a.bad){ a.currentTime=0; const p=a.play(); if(p&&p.catch) p.catch(()=>{ a.bad=true; this.tone(n); }); return; } }
+    this.tone(n); },
+  tone(n){ try{ const x=this.ctx();
+    const seq=n==='win'?[[523,0],[659,.11],[784,.22],[1046,.34]] : n==='lose'?[[330,0],[262,.16],[196,.32]]
+      : n==='correct'?[[660,0],[880,.08]] : n==='wrong'?[[200,0],[150,.1]] : n==='hint'?[[880,0],[1170,.09]] : [[520,0]];
+    seq.forEach(([f,t])=>{ const o=x.createOscillator(),g=x.createGain();
+      o.type=(n==='wrong'||n==='lose')?'sawtooth':'triangle'; o.frequency.value=f;
+      const s=x.currentTime+t,d=(n==='win'||n==='lose')?.34:.14;
+      g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.16,s+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,s+d); o.connect(g); g.connect(x.destination); o.start(s); o.stop(s+d+.05); });
+  }catch(e){} }
+};
+
+/* ============================== 3. UI STATE ============================= */
+/* NOTE: this order matches the category blocks inside WORD_DATABASE (game.cpp) */
+const CATS=[
+  {n:'ANIMALS',e:'🐾',d:'Discover creatures from around the world.'},
+  {n:'FRUITS',e:'🍎',d:'Guess delicious fruits using clues.'},
+  {n:'COUNTRIES',e:'🌍',d:'Test your knowledge of countries.'},
+  {n:'TECHNOLOGY',e:'💻',d:'Guess technology-related words.'},
+  {n:'SPORTS',e:'⚽',d:'Guess famous sports and games.'},
+  {n:'MOVIES',e:'🎬',d:'Guess movie-related words.'},
+  {n:'GENERAL',e:'🌟',d:'Random interesting words.'}
+];
+const DIFFS=[{n:'EASY',e:'🟢',lives:8,s:'Beginner friendly words · 1x points',cls:'easy'},
+             {n:'MEDIUM',e:'🟡',lives:6,s:'Normal words · 1.5x points',cls:''},
+             {n:'HARD',e:'🔴',lives:4,s:'Challenging words · 2x points',cls:'hard'}];
+const G={ screen:'home', history:[], cat:-1, diff:-1, mask:'', guessed:[], lives:6, max:6, score:0, round:0,
+  streak:0, hints:2, len:0, left:0, counts:[0,0,0,0,0,0,0], status:'NOT_STARTED', word:'', clue:'',
+  extra:'', fact:'', busy:false };
+
+const $=id=>document.getElementById(id);
+const el=(t,c,h)=>{ const n=document.createElement(t); if(c) n.className=c; if(h!=null) n.innerHTML=h; return n; };
+const esc=s=>String(s==null?'':s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+const user=()=>Users.current();
+
+/* ------------------------------ navigation ------------------------------ */
+function show(name){
+  if(name!=='game') Timer.stop();                 /* leaving the game screen ends the clock */
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('scr-'+name).classList.add('active'); G.screen=name;
+  $('topnav').classList.toggle('hidden', name==='home');
+  document.body.classList.toggle('nav-on', name!=='home');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(name==='home') syncHome();
+  if(name==='category') renderCats();
+}
+function go(name){ if(G.screen!==name) G.history.push(G.screen); show(name); Sound.play('click'); }
+function back(){ show(G.history.pop()||'home'); Sound.play('click'); }   /* real previous screen */
+
+/* ------------------------------- helpers -------------------------------- */
+const usedMap=csv=>{ const m={}; (csv||'').split(';').filter(Boolean).forEach(p=>{ const c=p.split(':')[0],l=p.substring(c.length+1); if(c) m[c]=l?l.split(','):[]; }); return m; };
+const usedCsv=m=>Object.keys(m||{}).filter(c=>(m[c]||[]).length).map(c=>c+':'+m[c].join(',')).join(';');
+function msgBox(id,text,kind){ const b=$(id); b.style.display='flex'; b.className='msg '+(kind||'')+' appear';
+  b.innerHTML='<span>'+(kind==='bad'?'❌':kind==='good'?'✅':'⚠️')+'</span><span>'+esc(text)+'</span>'; }
+const pill=(ic,v)=>el('span','pill',ic+' <b>'+esc(v)+'</b>');
+function mini(box,withHints){
+  if(!box) return; const u=user(); box.innerHTML='';
+  box.appendChild(pill('👤',u?u.name:'Guest')); box.appendChild(pill('🏆',u?u.score:0)); box.appendChild(pill('🔥',u?u.streak:0));
+  if(withHints) box.appendChild(pill('💡',G.hints+' hints'));
+}
+
+/* ======================= HOME USER STATUS + NAV ========================= */
+function syncHome(){
+  const u=user(), box=$('homeUser');
+  if(u){
+    box.style.display='flex';
+    box.innerHTML='<div class="avatar">🧑‍🎓</div><div style="text-align:left"><div class="uc-name">👤 Welcome, '+esc(u.name)+'</div>'+
+      '<div class="uc-meta">🏆 Score: '+(u.score||0)+' &nbsp;·&nbsp; 🔥 Streak: '+(u.streak||0)+' &nbsp;·&nbsp; 🏅 Best: '+(u.best||0)+'</div></div>'+
+      '<button class="btn btn-danger btn-sm" id="homeLogout">🚪 LOGOUT</button>';
+    $('homeLogout').onclick=askLogout;
+  } else { box.style.display='none'; box.innerHTML=''; }
+  $('btnAuth').style.display=u?'none':'';
+  $('navUser').innerHTML='👤 <span class="lbl">'+esc(u?u.name:'Guest')+'</span>';
+  $('navLogout').classList.toggle('hidden',!u);
+  mini($('catMini')); mini($('diffMini')); mini($('gameMini'),true);
+}
+
+/* ============================ AUTH SCREEN =============================== */
+function showAuthTab(w){
+  $('tabLogin').classList.toggle('on',w==='login'); $('tabRegister').classList.toggle('on',w==='register');
+  $('tabLogin').setAttribute('aria-selected',w==='login'); $('tabRegister').setAttribute('aria-selected',w==='register');
+  $('loginForm').style.display=w==='login'?'block':'none'; $('regForm').style.display=w==='register'?'block':'none';
+  $('authMsg').style.display='none';
+}
+$('tabLogin').onclick=()=>{ showAuthTab('login'); Sound.play('click'); };
+$('tabRegister').onclick=()=>{ showAuthTab('register'); Sound.play('click'); };
+$('goRegister').onclick=()=>showAuthTab('register');
+$('goLogin').onclick=()=>showAuthTab('login');
+function openAuth(tab){ showAuthTab(tab||'login'); go('auth'); }
+
+$('loginForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=$('loginName').value.trim(), pass=$('loginPass').value;
+  if(!name||!pass){ msgBox('authMsg','Please fill in both fields.','bad'); return; }
+  try{ const u=await Users.login(name,pass); Users.remember(u,$('remember').checked); await startSession(u);
+    msgBox('authMsg','Welcome, '+u.name+'! 🎉','good'); setTimeout(()=>go('category'),450); }
+  catch(err){ msgBox('authMsg',err.message,'bad'); }
+});
+$('regForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=$('regName').value.trim(), email=$('regEmail').value.trim(), p1=$('regPass').value, p2=$('regPass2').value;
+  if(name.length<3||name.length>20){ msgBox('authMsg','Username must be 3 to 20 characters.','bad'); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msgBox('authMsg','Please enter a valid email address.','bad'); return; }
+  if(p1.length<4){ msgBox('authMsg','Password must be at least 4 characters.','bad'); return; }
+  if(p1!==p2){ msgBox('authMsg','Passwords do not match.','bad'); return; }
+  try{ const u=await Users.register(name,email,p1); Users.remember(u,true); await startSession(u);
+    msgBox('authMsg','Account created. Welcome, '+u.name+'! 🎉','good'); setTimeout(()=>go('category'),450); }
+  catch(err){ msgBox('authMsg',err.message,'bad'); }
+});
+/* load the player's used words, score and streak into the C++ engine */
+async function startSession(u){
+  const st=await cmd('SETUSED|'+usedCsv(u.used));
+  if(st.COUNTS) G.counts=st.COUNTS.split(',').map(Number);
+  const s2=await cmd('RESUME|'+(u.score||0)+'|'+(u.streak||0)+'|'+(u.words||0));
+  G.score=+s2.SCORE||0; G.streak=+s2.STREAK||0;
+  renderGame(); syncHome();
+}
+async function askLogout(){
+  const ok=await confirmBox('Logout','Are you sure you want to logout? Your score, streak and used words are kept.','LOGOUT');
+  if(!ok) return;
+  Users.forget(); await cmd('RESET');
+  G.score=0; G.streak=0; G.status='NOT_STARTED'; G.mask=''; G.guessed=[]; G.history=[];
+  show('home'); Sound.play('click');
+}
+
+/* ============================ CATEGORY SCREEN =========================== */
+function renderCats(){
+  const u=user(), used=(u&&u.used)||{}, box=$('catGrid'); box.innerHTML='';
+  CATS.forEach((c,i)=>{
+    const total=G.counts[i]||0, done=(used[c.n]||[]).length, left=total>0?total-done:1;
+    const d=el('button','cat'+(G.cat===i?' sel':'')+(left===0?' locked done':''),
+      '<span class="ico" aria-hidden="true">'+c.e+'</span><div class="nm">'+c.n+'</div><div class="ds">'+c.d+'</div>'+
+      (left===0?'<div class="meta"><span class="badge left">completed ✓</span></div>':''));
+    d.setAttribute('aria-label','Category '+c.n+', '+c.d);
+    d.onclick=()=>{
+      if(left===0){ Sound.play('wrong'); msgBox('catWarn','You have completed every '+c.n+' word! Use RESET PROGRESS on the home page or choose another category.','warn'); return; }
+      G.cat=i; Sound.play('click'); renderCats(); $('catWarn').style.display='none'; $('btnCatNext').disabled=false; };
+    box.appendChild(d);
+  });
+}
+function renderDiffs(){
+  const box=$('diffGrid'); box.innerHTML='';
+  DIFFS.forEach((d,i)=>{
+    const n=el('button','opt '+d.cls+(G.diff===i+1?' sel':''),
+      '<span class="ico" aria-hidden="true">'+d.e+'</span><div class="nm">'+d.n+'</div><div class="lv">'+d.lives+' ❤️ lives</div><div class="sb">'+d.s+'</div>');
+    n.setAttribute('aria-pressed',G.diff===i+1);
+    n.onclick=()=>{ G.diff=i+1; const u=user(); if(u){ u.difficulty=G.diff; Users.persist(u).catch(()=>{}); }
+      Sound.play('click'); renderDiffs(); $('diffWarn').style.display='none'; $('btnStart').disabled=false; };
+    box.appendChild(n);
+  });
+}
+
+/* ============================== GAME SCREEN ============================= */
+function buildKb(){
+  const kb=$('kb'); kb.innerHTML='';
+  for(let i=0;i<26;i++){ const L=String.fromCharCode(65+i), b=el('button','key',L);
+    b.dataset.l=L; b.setAttribute('aria-label','Guess letter '+L); b.onclick=()=>guess(L); kb.appendChild(b); }
+}
+function renderGame(){
+  const row=$('wordRow'); row.innerHTML='';
+  if(G.mask) G.mask.split(' ').forEach(ch=>row.appendChild(el('div','tile'+(ch==='_'?' empty':' on')+(G.status==='WON'?' won':''),ch==='_'?'':ch)));
+  $('lenNote').textContent=(G.len||'—')+' LETTERS';
+  $('gameCat').textContent=G.cat>=0?CATS[G.cat].n:'—'; $('gameDiff').textContent=G.diff>0?DIFFS[G.diff-1].n:'—';
+  $('stageCat').textContent=G.cat>=0?CATS[G.cat].n:'—';
+  $('clueText').textContent=G.clue||'Read the clue and start guessing.';
+  const eh=$('extraHint'); if(G.extra){ eh.classList.remove('hidden'); eh.innerHTML='💡 <b>Additional hint:</b> '+esc(G.extra); } else eh.classList.add('hidden');
+  const max=G.max,left=G.lives; let h=''; for(let i=0;i<max;i++) h+='<span class="'+(i<left?'':'lost')+'">❤️</span>';
+  $('lives').innerHTML=h; $('livesNum').textContent=left; $('livesMax').textContent=max;
+  const wrong=max-left, shown=max>0?Math.min(6,Math.ceil(6*wrong/max)):0;
+  document.querySelectorAll('.part').forEach(p=>{ const s=+p.dataset.s; p.classList.toggle('on', s<=shown||(s===7&&left===1&&G.status==='PLAYING')); });
+  $('mouth').setAttribute('d', left<=2?'M139 136 q11 -9 22 0':'M139 133 q11 10 22 0');
+  document.querySelectorAll('.key').forEach(k=>{ const L=k.dataset.l, used=G.guessed.indexOf(L)>=0;
+    k.disabled=used||G.status!=='PLAYING'||G.busy; k.className='key'+(used?(G.mask.indexOf(L)>=0?' hit':' miss'):''); });
+  const p=$('guessedPills'); p.innerHTML='';
+  if(!G.guessed.length) p.appendChild(el('span','lp gh','—'));
+  G.guessed.forEach(c=>p.appendChild(el('span','lp '+(G.mask.indexOf(c)>=0?'ok':'no'),c)));
+  const hint=$('btnHint'); hint.disabled=G.hints<=0||G.status!=='PLAYING';
+  hint.textContent=G.hints===2?'💡 HINT 1 (-15)':G.hints===1?'💡 HINT 2 (-15)':'💡 NO HINTS LEFT';
+  mini($('gameMini'),true);
+}
+function setMessage(text,ev){
+  const k=(ev==='CORRECT'||ev==='WIN'||ev==='NEW')?'good':(ev==='WRONG'||ev==='LOSE')?'bad':(ev==='DUPLICATE'||ev==='INVALID'||ev==='ERROR'||ev==='HINT')?'warn':'';
+  const b=$('gameMsg'); b.style.display='flex'; b.className='msg '+k+' appear';
+  b.innerHTML='<span>'+(k==='good'?'✅':k==='bad'?'❌':k==='warn'?'⚠️':'💬')+'</span><span>'+esc(text)+'</span>';
+}
+
+/* ---------------------------- game flow -------------------------------- */
+function applyState(st){
+  if(st.CAT){ const i=CATS.findIndex(c=>c.n===st.CAT); if(i>=0) G.cat=i; }
+  if(st.CLUE!=null) G.clue=st.CLUE; if(st.HINTTEXT!=null) G.extra=st.HINTTEXT;
+  if(st.LEN) G.len=+st.LEN; if(st.MASK!=null) G.mask=st.MASK;
+  if(st.GUESSED!=null) G.guessed=st.GUESSED.split(',').filter(Boolean);
+  if(st.LIVES!=null) G.lives=+st.LIVES; if(st.MAX!=null) G.max=+st.MAX;
+  if(st.SCORE!=null) G.score=+st.SCORE; if(st.ROUND!=null) G.round=+st.ROUND;
+  if(st.STREAK!=null) G.streak=+st.STREAK; if(st.HINTS!=null) G.hints=+st.HINTS;
+  if(st.REMAINING!=null) G.left=+st.REMAINING; if(st.COUNTS) G.counts=st.COUNTS.split(',').map(Number);
+  if(st.STATUS!=null) G.status=st.STATUS; if(st.DIFF) G.diff=+st.DIFF;
+  if(st.WORD) G.word=st.WORD; if(st.FACT) G.fact=st.FACT;
+  if(G.status!=='PLAYING') Timer.stop();          /* round finished → timer stops */
+  /* persist this player's own record — never another player's */
+  const u=user();
+  if(u){
+    u.score=G.score; u.streak=G.streak;
+    if(st.EVENT==='CORRECT') u.correct=(u.correct||0)+1;
+    if(st.EVENT==='WIN'){ u.wins=(u.wins||0)+1; u.words=(u.words||0)+1; u.games=(u.games||0)+1; }
+    if(st.EVENT==='LOSE'){ u.losses=(u.losses||0)+1; u.games=(u.games||0)+1; }
+    u.best=Math.max(u.best||0,G.score); u.bestStreak=Math.max(u.bestStreak||0,G.streak);
+    if(st.USED!=null) u.used=usedMap(st.USED);
+    Users.persist(u).catch(()=>{});
+  }
+  renderGame(); syncHome();
+  if(st.MESSAGE) setMessage(st.MESSAGE,st.EVENT);
+  if(st.EVENT==='CORRECT'||st.EVENT==='WIN') Sound.play('correct');
+  else if(st.EVENT==='WRONG'){ Sound.play('wrong'); $('wordRow').classList.add('shake'); setTimeout(()=>$('wordRow').classList.remove('shake'),520); }
+  else if(st.EVENT==='HINT') Sound.play('hint');
+  return st;
+}
+/* ================================ TIMER =================================
+   30 seconds per word. One interval only: starting a round always clears the
+   previous timer, and it stops as soon as the round or the game ends.      */
+const Timer={
+  LIMIT:30, left:30, id:null,
+  paint(){ const t=$('gameTimer'); if(!t) return; t.textContent=this.left;
+    t.style.color=this.left<=5?'var(--danger)':''; },
+  start(){ this.stop(); this.left=this.LIMIT; this.paint();
+    this.id=setInterval(()=>{ this.left--; this.paint();
+      if(this.left<=0){ this.stop(); onTimeUp(); } },1000); },
+  stop(){ if(this.id){ clearInterval(this.id); this.id=null; } }
+};
+async function onTimeUp(){
+  if(G.status!=='PLAYING'||G.busy) return;
+  G.busy=true; const st=applyState(await cmd('GIVEUP')); G.busy=false; renderGame();
+  setMessage("Time's up! The word was "+(st.WORD||G.word)+'.','LOSE');
+  Sound.play('lose'); setTimeout(showLose,650);
+}
+
+/* a round = a brand new UNUSED word; score, streak, login and history are kept */
+async function startRound(){
+  if(!user()){ openAuth('login'); return; }
+  if(Engine.failed){ setMessage('The C++ engine could not be loaded.','ERROR'); return; }
+  if(G.cat<0){ msgBox('catWarn','Please choose a category first.','warn'); go('category'); return; }
+  if(G.diff<1){ msgBox('diffWarn','Please select a difficulty first.','warn'); go('difficulty'); return; }
+  const st=applyState(await cmd('START|'+G.cat+'|'+G.diff+'|'+(Math.floor(Math.random()*1e6)+1)));
+  if(st.STATUS==='COMPLETED'){
+    Timer.stop();
+    $('doneText').textContent='You have guessed all available words in '+CATS[G.cat].n+'!';
+    $('doneScore').textContent=G.score; $('doneStreak').textContent='🔥 '+G.streak; $('doneWords').textContent=user().words||0;
+    go('completed'); Sound.play('win'); return;
+  }
+  go('game'); Timer.start();
+}
+async function guess(L){
+  if(G.busy||G.status!=='PLAYING') return;
+  L=(L||'').toUpperCase(); if(L.length!==1||L<'A'||L>'Z'){ setMessage('Please choose a single letter from A to Z.','INVALID'); return; }
+  G.busy=true; renderGame(); const st=applyState(await cmd('GUESS|'+L)); G.busy=false; renderGame();
+  if(st.STATUS==='WON'){ Sound.play('win'); setTimeout(showWin,650); }
+  else if(st.STATUS==='LOST'){ Sound.play('lose'); setTimeout(showLose,650); }
+}
+async function useHint(){
+  if(G.busy||G.status!=='PLAYING'||G.hints<=0) return;
+  G.busy=true; renderGame(); const st=applyState(await cmd('HINT')); G.busy=false; renderGame();
+  if(st.STATUS==='WON'){ Sound.play('win'); setTimeout(showWin,650); }
+}
+const catLine=()=>(CATS[G.cat]?CATS[G.cat].n:'—')+' · '+(DIFFS[G.diff-1]?DIFFS[G.diff-1].n:'—');
+function showWin(){
+  $('winWord').textContent=G.word; $('winCatLine').textContent='Category: '+catLine();
+  $('winPoints').textContent='+'+G.round; $('winTotal').textContent=G.score; $('winStreak').textContent='🔥 '+G.streak;
+  $('winMiss').textContent=G.max-G.lives; $('winFact').textContent=G.fact||'Great job — try the next word!';
+  go('win'); confetti(110);
+}
+function showLose(){
+  $('loseWord').textContent=G.word; $('loseCatLine').textContent='Category: '+catLine();
+  $('loseScore').textContent=G.score; $('loseStreak').textContent='🔥 '+G.streak; $('loseLives').textContent=G.max;
+  $('loseFact').textContent=G.fact||'Every word teaches you something new!'; go('over');
+}
+
+/* ============================= SCOREBOARD =============================== */
+async function openBoard(){
+  const body=$('boardBody'); body.innerHTML='<p class="hintline">Loading…</p>';
+  $('ov-scoreboard').classList.add('open'); Sound.play('click'); renderCloudState();
+  try{ await Users.all(); }catch(e){}
+  const u=user(); body.innerHTML='';
+  if(u){
+    const grid=el('div','stats');
+    [['CURRENT SCORE',u.score],['BEST SCORE',u.best],['GAMES PLAYED',u.games||0],['CORRECT LETTERS',u.correct||0],
+     ['WORDS COMPLETED',u.words||0],['CURRENT STREAK','🔥 '+u.streak],['BEST STREAK','🔥 '+(u.bestStreak||0)]]
+     .forEach(([k,v])=>grid.appendChild(el('div','stat-box','<span>'+k+'</span><b>'+esc(v)+'</b>')));
+    body.appendChild(grid);
+  } else body.innerHTML='<p class="hintline">You are playing as a guest — log in to save your score and join the ranking.</p>';
+  const list=Users.cache.slice().sort((a,b)=>(b.best||0)-(a.best||0));
+  if(!list.length){ body.insertAdjacentHTML('beforeend','<p class="hintline">No explorers registered yet.</p>'); return; }
+  const medals=['🥇','🥈','🥉'], wrap=el('div','tblwrap'), t=el('table','');
+  t.innerHTML='<thead><tr><th>RANK</th><th>PLAYER</th><th>SCORE</th><th>BEST</th><th>GAMES</th><th>CORRECT</th><th>WORDS</th><th>BEST STREAK</th></tr></thead>';
+  const tb=el('tbody','');
+  list.forEach((p,i)=>tb.appendChild(el('tr',u&&p.id===u.id?'me':'',
+    '<td class="rk">'+(medals[i]||(i+1))+'</td><td>'+esc(p.name)+(u&&p.id===u.id?' <span style="font-size:.7rem">(you)</span>':'')+'</td>'+
+    '<td>'+(p.score||0)+'</td><td>'+(p.best||0)+'</td><td>'+(p.games||0)+'</td><td>'+(p.correct||0)+'</td>'+
+    '<td>'+(p.words||0)+'</td><td>🔥 '+(p.bestStreak||0)+'</td>')));
+  t.appendChild(tb); wrap.appendChild(t); body.appendChild(wrap);
+}
+/* shared online scoreboard (runtime connection, remembered in this browser) */
+function renderCloudState(){
+  const on=!!(CLOUD.url&&CLOUD.anonKey);
+  $('cloudUrl').value=CLOUD.url||''; $('cloudKey').value=CLOUD.anonKey||'';
+  $('cloudState').textContent=on?'☁ Connected — this scoreboard is shared by everyone who opens the public link.'
+                                :'💾 Local mode — accounts and scores are stored in this browser only.';
+}
+async function applyCloud(){
+  try{ await Users.all(); }
+  catch(e){ CLOUD={url:'',anonKey:'',table:'wh_users'}; CloudCfg.save(CLOUD); await Users.all();
+    msgBox('cloudMsg','Could not reach that database. Check the project URL and the anon key.','bad'); renderCloudState(); return; }
+  if(!Users.current()){ Users.forget(); G.score=0; G.streak=0; }
+  msgBox('cloudMsg',CLOUD.url?'Connected — the scoreboard is now shared online.':'Disconnected — data is stored in this browser.','good');
+  renderCloudState(); syncHome(); openBoard();
+}
+$('cloudToggle').onclick=()=>{ $('cloudPanel').classList.toggle('hidden'); Sound.play('click'); };
+$('btnCloudSave').onclick=()=>{ const url=$('cloudUrl').value.trim(), key=$('cloudKey').value.trim();
+  if(!url||!key){ msgBox('cloudMsg','Please fill in both the project URL and the anon key.','bad'); return; }
+  CLOUD={url:url.replace(/\/+$/,''),anonKey:key,table:'wh_users'}; CloudCfg.save(CLOUD); applyCloud(); };
+$('btnCloudClear').onclick=()=>{ CLOUD={url:'',anonKey:'',table:'wh_users'}; CloudCfg.save(CLOUD); applyCloud(); };
+
+/* ============================ CONFIRM / RESET =========================== */
+function confirmBox(title,text,ok){
+  return new Promise(res=>{
+    $('cfTitle').textContent=title; $('cfText').textContent=text; $('cfYes').textContent=ok||'YES';
+    const ov=$('ov-confirm'); ov.classList.add('open');
+    const done=v=>{ ov.classList.remove('open'); $('cfYes').onclick=null; $('cfNo').onclick=null; res(v); };
+    $('cfYes').onclick=()=>{ Sound.play('click'); done(true); }; $('cfNo').onclick=()=>{ Sound.play('click'); done(false); };
+  });
+}
+async function resetAllWords(){
+  if(!user()){ openAuth('login'); return; }
+  const ok=await confirmBox('Reset word progress?','Resetting your word progress will make previously used words available again. Continue?','YES, RESET');
+  if(!ok) return;
+  for(let i=0;i<CATS.length;i++) await cmd('RESETCAT|'+i);
+  const u=user(); u.used={}; await Users.persist(u).catch(()=>{});
+  renderCats(); syncHome(); Sound.play('win');
+}
+async function resetOneCategory(){
+  const ok=await confirmBox('Reset this category?','This makes every '+CATS[G.cat].n+' word available again. Continue?','YES, RESET');
+  if(!ok) return;
+  await cmd('RESETCAT|'+G.cat);
+  const u=user(); if(u){ u.used=u.used||{}; delete u.used[CATS[G.cat].n]; Users.persist(u).catch(()=>{}); }
+  renderCats(); await startRound();
+}
+
+/* ================================ EVENTS ================================ */
+document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{
+  const t=b.dataset.nav;
+  if(t==='scoreboard'){ openBoard(); return; }
+  if(t==='category'&&!user()){ openAuth('login'); return; }
+  go(t);
+});
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{ $(b.dataset.close).classList.remove('open'); Sound.play('click'); });
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+
+/* PLAY: logged in → categories · guest → login / register */
+const play=()=>{ Sound.play('click'); if(user()) go('category'); else openAuth('login'); };
+$('btnPlay').onclick=play; $('btnWhyPlay').onclick=play; $('btnHowPlay').onclick=play;
+$('btnAuth').onclick=()=>openAuth('login');
+$('btnAuthBack').onclick=back; $('btnCatBack').onclick=back; $('btnDiffBack').onclick=back;
+$('btnWinBack').onclick=back; $('btnOverBack').onclick=back; $('btnWhyBack').onclick=back; $('btnHowBack').onclick=back;
+$('btnCatNext').onclick=()=>{ if(G.cat<0){ msgBox('catWarn','Please choose a category first.','warn'); return; } renderDiffs(); go('difficulty'); };
+$('btnStart').onclick=()=>startRound();
+$('btnHint').onclick=useHint;
+$('btnGiveUp').onclick=async()=>{ if(G.status!=='PLAYING') return; applyState(await cmd('GIVEUP')); Sound.play('lose'); setTimeout(showLose,500); };
+/* PLAY AGAIN · NEXT WORD · TRY AGAIN all fetch a new unused word and keep score, streak, login */
+$('btnWinAgain').onclick=$('btnWinNext').onclick=$('btnTryAgain').onclick=$('btnLoseNext').onclick=()=>startRound();
+$('btnResetCat').onclick=resetOneCategory;
+$('btnResetWords').onclick=resetAllWords;
+$('btnAbout').onclick=()=>{ $('aboutMode').textContent='Current engine: '+($('engineName').textContent||'—'); $('ov-about').classList.add('open'); Sound.play('click'); };
+$('btnMute').onclick=()=>{ Sound.muted=!Sound.muted; $('btnMute').textContent=Sound.muted?'🔇 Muted':'🔊 Sound'; if(!Sound.muted) Sound.play('click'); };
+$('navLogout').onclick=askLogout;
+$('navUser').onclick=()=>{ if(!user()) openAuth('login'); else openBoard(); };
+
+/* ============================== SHARE GAME ==============================
+   Shares the URL of the currently opened application (never a hard-coded
+   address), so the same button works on localhost and on the public link.
+   Native system share sheet when available (WhatsApp, Telegram, Messages,
+   Email …); otherwise the link is copied to the clipboard.                 */
+function shareUrl(){
+  const u=new URL(window.location.href); u.hash=''; u.search='';        /* clean link */
+  return u.href;
+}
+function shareNote(text){
+  const m=$('shareMsg'); m.textContent=text; m.classList.remove('hidden');
+  clearTimeout(shareNote.t); shareNote.t=setTimeout(()=>m.classList.add('hidden'),2600);
+}
+async function copyLink(url){
+  try{ await navigator.clipboard.writeText(url); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=url; ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); } finally{ ta.remove(); } }
+  shareNote('✅ Game link copied!');
+}
+$('btnShare').onclick=async()=>{
+  Sound.play('click');
+  const data={ title:'Word Hunt', text:'Come and play Word Hunt with me!', url:shareUrl() };
+  if(navigator.share && (!navigator.canShare || navigator.canShare(data))){
+    try{ await navigator.share(data); shareNote('🎉 Thanks for sharing Word Hunt!'); return; }
+    catch(e){ if(e && e.name==='AbortError') return; }      /* user closed the sheet */
+  }
+  await copyLink(data.url);
+};
+
+document.addEventListener('keydown',e=>{
+  if(document.querySelector('.overlay.open')){ if(e.key==='Escape') document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('open')); return; }
+  if(G.screen==='game'){ if(/^[a-zA-Z]$/.test(e.key)){ e.preventDefault(); guess(e.key); } if(e.key==='Enter'){ e.preventDefault(); useHint(); } }
+  else if(G.screen==='win'&&e.key==='Enter') startRound();
+  else if(G.screen==='home'&&e.key==='Enter') play();
+});
+function confetti(n){
+  const colors=['#ff8a3d','#ffc93c','#2fb8a6','#4fbf6a','#ff5c6c','#7fd8f2'];
+  for(let i=0;i<n;i++){ const c=el('div','confetti'); c.style.left=Math.random()*100+'vw'; c.style.background=colors[i%colors.length];
+    c.style.animationDuration=(1.9+Math.random()*1.8)+'s'; c.style.animationDelay=(Math.random()*.6)+'s';
+    document.body.appendChild(c); setTimeout(()=>c.remove(),4200); }
+}
+
+/* ================================= BOOT ================================= */
+(async function boot(){
+  buildKb(); renderDiffs();
+  const name=await Engine.init();
+  const isCpp=Engine.active===WasmEngine;
+  $('led').classList.toggle('cpp',isCpp); $('engineName').textContent=name;
+  const st=await cmd('STATUS');
+  if(st.COUNTS) G.counts=st.COUNTS.split(',').map(Number);
+  $('homeFoot').textContent='Clue-based words · '+CATS.length+' categories · 3 difficulty levels';
+  try{ await Users.all(); }catch(e){ CLOUD={url:'',anonKey:'',table:'wh_users'}; CloudCfg.save(CLOUD); await Users.all(); }
+  const sid=Users.restore();
+  if(sid){ Users.session=sid; const u=Users.current(); if(u) await startSession(u); else Users.forget(); }
+  show('home');
+})();
+</script>
+</body>
+</html>
