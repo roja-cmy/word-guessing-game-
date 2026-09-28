@@ -1227,6 +1227,12 @@ function applyState(st){
    previous timer, and it stops as soon as the round or the game ends.      */
 const Timer={
   LIMIT:30, left:30, id:null,
+
+  setForDifficulty(diff){
+    this.LIMIT = diff===1 ? 60 : diff===2 ? 45 : 30;
+    this.left = this.LIMIT;
+  },
+
   paint(){ const t=$('gameTimer'); if(!t) return; t.textContent=this.left;
     t.style.color=this.left<=5?'var(--danger)':''; },
   start(){ this.stop(); this.left=this.LIMIT; this.paint();
@@ -1254,7 +1260,9 @@ async function startRound(){
     $('doneScore').textContent=G.score; $('doneStreak').textContent='🔥 '+G.streak; $('doneWords').textContent=user().words||0;
     go('completed'); Sound.play('win'); return;
   }
-  go('game'); Timer.start();
+  go('game');
+Timer.setForDifficulty(G.diff);
+Timer.start();
 }
 async function guess(L){
   if(G.busy||G.status!=='PLAYING') return;
